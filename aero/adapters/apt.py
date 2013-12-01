@@ -14,22 +14,12 @@ class Apt(BaseAdapter):
 
     def search(self, query):
         response = self._execute_command(self.search_command, ['search', query])[0].decode(*enc)
-        lst = {}
-        from re import match
-        lst.update([
-            match('^([^ ]*) - (.*)', 'apt:'+line).groups()
-            for line in response.splitlines()
-            if match('^([^ ]*) - (.*)', line)
-        ])
-        return lst
+        regex = re.compile('^([^ ]*) - (.*)')
+        return { 'apt:'+m.group(1): m.group(2) for m in map(regex.match, response.splitlines()) if m }
 
     def info(self, query):
         response = self._execute_command(self.search_command, ['show', query])[0].decode(*enc)
-        lst = [
-            line.split(': ') if line.find(': ') > 0 else ('',line)
-            for line in response.splitlines()
-        ]
-        return self.munge_lines(lst)
+        return self.munge_lines([(a, b) for a, _, b in map(lambda s: s.rpartition(': '), response.splitlines)])
 
     def install(self, query):
         return self.shell('install', query)
